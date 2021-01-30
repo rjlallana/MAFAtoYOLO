@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import json
 import cv2
-from MAFAExtractor.mafaextractor import extract_mafa
 
 def get_rows(img_names, labels):
     rows = []
