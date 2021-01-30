@@ -4,8 +4,9 @@ Link para descargar el dataset https://drive.google.com/drive/folders/1nbtM1n0--
 Descargar, descomprimir los archivos y poner el main.py en la misma carpeta. 
 
 Quedando de esta forma:
-  test-images/
-  train-images/
-  LabelTestAll.mat
-  LabelTrainAll.mat
-  main.py
+
+      test-images/
+      train-images/
+      LabelTestAll.mat
+      LabelTrainAll.mat
+      main.py
