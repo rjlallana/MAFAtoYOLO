@@ -91,7 +91,7 @@ def make_test_data():
     If any question, please contact me. (geshiming@iie.ac.cn)
     '''
 
-    test = scipy.io.loadmat('MAFA-Label-Test/LabelTestAll.mat')
+    test = scipy.io.loadmat('LabelTestAll.mat')
     # print(test.keys())
     test_labels = test['LabelTest']
     test_labels = test_labels[0]
