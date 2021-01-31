@@ -10,12 +10,12 @@ def get_rows(img_names, labels):
     rows = []
     # enumerate(img_names) -> iterador con estructura (indice, array(['nombre_imagen.jpg'])) 
     for index, img_name in enumerate(img_names):
-            for label in labels[index]:
-                # print(index)
-                # print(img_name.item())
-                row = [img_name.item()]
-                row.extend(label) # concatena las etiquetas
-                rows.append(row)
+        for label in labels[index]:
+            # print(index)
+            # print(img_name.item())
+            row = [img_name.item()]
+            row.extend(label) # concatena las etiquetas
+            rows.append(row)
     return rows
 
 # Convierte el archivo LabelTrainAll.mat en un DataFrame de pandas
@@ -133,8 +133,8 @@ occluder_degree = {
 }
 
 def bb_to_yolo(img, x,y,w,h):
-    # img_height, img_width = img.shape[:2] # (height, width)
-    img_height, img_width = img
+    # img_height, img_width = img.shape[:2] # (height, width) cv2 -> height, width PIL -> width, height xd
+    img_width, img_height = img # width, height = im.size 
     x = (x+(w /2)) / img_width
     y = (y+(h /2)) / img_height
     w = w / img_width
@@ -151,7 +151,7 @@ def yolo_to_bb(img, x,y,w,h):
 
 
 def draw_bounding_box(row, mode):
-    img = cv2.imread(''+mode+'-images/images/'+row['image_name'])
+    img = cv2.imread(mode+'/images/'+row['image_name'])
     img_width, img_height = img.shape[:2]
     
     x = int(row[1])
@@ -205,8 +205,8 @@ def get_label(row):
     return label, label_name
 
 def mafa_to_yolo_labels(df, mode):
-    label_path = mode+'-images/label/'
-    image_path = mode+'-images/images/'
+    label_path = mode+'/labels/'
+    image_path = mode+'/images/'
     os.mkdir(label_path)
     for index, row in df.iterrows():
         with open(label_path+row.image_name[:-4]+'.txt','a') as f:
@@ -226,7 +226,7 @@ def mafa_to_yolo_labels(df, mode):
 def visualize_dataset(df, mode):
     for index, row in df.iterrows():
         # print(row['image_name'])
-        # img = cv2.imread('train-images/images/'+row['image_name'])
+        # img = cv2.imread('train/images/'+row['image_name'])
         str_type = row['occ_type']
         str_degree = row['occ_degree']
         img = draw_bounding_box(row, mode)
@@ -253,8 +253,8 @@ def visualize_img(row, mode):
 
 
 def draw_yolo_bounding_box(row, mode):
-    img = cv2.imread(''+mode+'-images/images/'+row['img_name'])
-    print(''+mode+'-images/images/'+row['img_name'])
+    img = cv2.imread(''+mode+'/images/'+row['img_name'])
+    print(''+mode+'/images/'+row['img_name'])
     img_width, img_height = img.shape[:2]
     
     x = float(row[1])
@@ -284,7 +284,7 @@ def draw_yolo_bounding_box(row, mode):
     return img
 
 def get_yolo_labels(mode):
-    directory = os.fsencode('yolo_labels/'+mode)
+    directory = os.fsencode(mode+'images/labels')
     for file in os.listdir(directory):
         filename = os.fsdecode(file)
         if filename.endswith(".txt"): 
@@ -302,8 +302,7 @@ def get_yolo_labels(mode):
             continue
         else:
             continue
-
-
+        
 def add_label_column(df):
     label_list = []
     for _, row in df.iterrows():
@@ -340,4 +339,3 @@ print('Done')
 print('Making yolo labels for test data...')
 mafa_to_yolo_labels(test, 'test')
 print('Done')
-

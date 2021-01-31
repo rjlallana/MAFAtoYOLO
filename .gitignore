@@ -1,4 +1,5 @@
 LabelTestAll.mat
 LabelTrainAll.mat
-test-images/
-train-images/
+test/
+train/
+.vscode
