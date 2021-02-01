@@ -5,8 +5,8 @@ Descargar, descomprimir los archivos y poner el main.py en la misma carpeta.
 
 Quedando de esta forma:
 
-      test-images/
-      train-images/
+      test/
+      train/
       LabelTestAll.mat
       LabelTrainAll.mat
       main.py
