@@ -132,18 +132,35 @@ occluder_degree = {
     -1:"-1" 
 }
 
+
+# <object-class> - integer number of object from 0 to (classes-1)
+# <x> <y> <width> <height> - float values relative to width and height of image, it can be equal from (0.0 to 1.0]
+# for example: <x> = <absolute_x> / <image_width> or <height> = <absolute_height> / <image_height>
+# atention: <x> <y> - are center of rectangle (are not top-left corner)
+
 def bb_to_yolo(img, x,y,w,h):
     # img_height, img_width = img.shape[:2] # (height, width) cv2 -> height, width PIL -> width, height xd
     img_width, img_height = img # width, height = im.size 
-    x = (x+(w /2)) / img_width
-    y = (y+(h /2)) / img_height
-    w = w / img_width
-    h = h / img_height
-    return x, y, w, h
+
+    yolo_x = (x+(w /2)) / img_width
+    yolo_y = (y+(h /2)) / img_height
+
+    yolo_w = w / img_width
+    yolo_h = h / img_height
+
+    if yolo_x > 1.0:
+        w = img_width - x
+        yolo_x = (x+(w /2)) / img_width
+    if yolo_y > 1.0:
+        h = img_height - y
+        yolo_y = (y+(h /2)) / img_height
+
+    return yolo_x, yolo_y, yolo_w, yolo_h
 
 
 def yolo_to_bb(img, x,y,w,h):
-    img_height, img_width = img.shape[:2] # (height, width)
+    img_width, img_height = img # width, height = im.size 
+    # img_height, img_width = img.shape[:2] # (height, width)
     x, y = (x - (w/2)) * img_width, (y - (h/2))*img_height
     w = w * img_width
     h = h * img_height
@@ -217,8 +234,8 @@ def mafa_to_yolo_labels(df, mode):
                 img.close()
 
                 label, _ = get_label(row)
-
-                f.write("%i %f %f %f %f\n"%(label, x, y, w, h))
+                if 0.0 <= (x or y or w or h) < 1.0: # Muchas anotaciones de los test estan mal y las x, y son mayores que el tamanio de la imagen 
+                    f.write("%i %f %f %f %f\n"%(label, x, y, w, h))
             except FileNotFoundError:
                 print("Image "+ image_path+row.image_name + " doesn't exist.")
 
@@ -253,8 +270,8 @@ def visualize_img(row, mode):
 
 
 def draw_yolo_bounding_box(row, mode):
-    img = cv2.imread(''+mode+'/images/'+row['img_name'])
-    print(''+mode+'/images/'+row['img_name'])
+    img = cv2.imread(mode+'/images/'+row['img_name'])
+    print(mode+'/images/'+row['img_name'])
     img_width, img_height = img.shape[:2]
     
     x = float(row[1])
@@ -280,8 +297,9 @@ def draw_yolo_bounding_box(row, mode):
     # cv2.putText(img,'occluder_degree: '+(row['occ_degree']),(x,y+h+20),0,0.3,(0,255,0))
 
     # cv2.circle(img, (x+int(w/2), y+int(h/2)), radius=4, color=(0, 0, 255), thickness=-1)
-
-    return img
+    cv2.imshow('img', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 def get_yolo_labels(mode):
     directory = os.fsencode(mode+'images/labels')
@@ -302,7 +320,7 @@ def get_yolo_labels(mode):
             continue
         else:
             continue
-        
+
 def add_label_column(df):
     label_list = []
     for _, row in df.iterrows():
@@ -325,17 +343,55 @@ def train_fix_label(df):
     df.loc[1381,'occ_degree'] = 'Fully'
     return df
 
+def test_fix_label(df):
+    # row = test.loc[4448]
+    # img = Image.open('test/images/'+row.image_name)
+    # _, img_height = img.size # width, height = im.size 
+    # df.loc[4448, 'h'] = img_height - row.y
+    df = df.drop(index=[1627, 5851, 5852, 5853, 5854, 7202, 4898, 159])
+    return df
 
 train = make_train_data()
 train = train.replace({'occ_type': occluder_type, 'occ_degree': occluder_degree})
 train = train_fix_label(train)
 test = make_test_data()
 test = test.replace({'occ_type': occluder_type, 'occ_degree': occluder_degree})
+# test = test_fix_label(test)
+def make_labels():
+    print('Making yolo labels for training data...')
+    mafa_to_yolo_labels(train, 'train')
+    print('Done')
 
-print('Making yolo labels for training data...')
-mafa_to_yolo_labels(train, 'train')
-print('Done')
+    print('Making yolo labels for test data...')
+    mafa_to_yolo_labels(test, 'test')
+    print('Done')
 
-print('Making yolo labels for test data...')
-mafa_to_yolo_labels(test, 'test')
-print('Done')
+
+def bbox(filename):
+    if filename[:3] == 'tra':
+        mode = 'train'
+        df = train[train['image_name'] == filename]
+        df
+        visualize_dataset(df, mode)
+    else:
+        mode = 'test'
+        df = test[test['image_name'] == filename]
+        df
+        visualize_dataset(df, mode)
+
+
+def debug(filename):
+    print(test[test['image_name'] == filename])
+    img = Image.open('test/images/'+filename)
+    print(img.size)
+    bbox(filename)
+
+make_labels()
+# debug('test_00001626.jpg')
+# img_name = 'test_00003494.jpg'
+# img = Image.open('test/images/'+img_name)
+# x, y, w, h = yolo_to_bb(img.size, x, y, w, h)
+# row = pd.Series(data = [img_name, x, y, w, h], index=['image_name', 'x', 'y', 'w', 'h'])
+# cv2.imshow('img', draw_bounding_box(row, 'test'))
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
