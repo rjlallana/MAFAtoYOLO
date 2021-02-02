@@ -234,10 +234,16 @@ def mafa_to_yolo_labels(df, mode):
                 img.close()
 
                 label, _ = get_label(row)
-                if 0.0 <= (x or y or w or h) < 1.0: # Muchas anotaciones de los test estan mal y las x, y son mayores que el tamanio de la imagen 
+                for i in x, y, w, h:
+                    write = True
+                    if not(0.0 <= i < 1.0):
+                        write = False
+                        break # Muchas anotaciones de los test estan mal y las x, y son mayores que el tamanio de la imagen 
+                if (write):
                     f.write("%i %f %f %f %f\n"%(label, x, y, w, h))
             except FileNotFoundError:
                 print("Image "+ image_path+row.image_name + " doesn't exist.")
+                print(index)
 
 
 def visualize_dataset(df, mode):
@@ -387,7 +393,9 @@ def debug(filename):
     bbox(filename)
 
 make_labels()
-# debug('test_00001626.jpg')
+# debug('test_00000900.jpg')
+
+# x, y, w, h = 0.183750, 1.052885, 0.077500, 0.198718
 # img_name = 'test_00003494.jpg'
 # img = Image.open('test/images/'+img_name)
 # x, y, w, h = yolo_to_bb(img.size, x, y, w, h)
@@ -395,3 +403,17 @@ make_labels()
 # cv2.imshow('img', draw_bounding_box(row, 'test'))
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
+
+
+# x, y, w, h = 0.183750, 1.052885, 0.077500, 0.198718
+# val = [0.183750, 1.052885, 0.077500, 0.198718]
+# for i in x, y, w, h:
+#     if not(0.0 <= i < 1.0):
+#         break
+
+# print((x and y and w and h))
+
+# if 0.0 <= val < 1.0:
+#     print('bien')
+# else:
+#     print('mal')
