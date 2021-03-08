@@ -3,3 +3,4 @@ LabelTrainAll.mat
 test/
 train/
 .vscode
+*.txt
