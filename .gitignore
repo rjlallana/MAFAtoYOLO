@@ -4,3 +4,4 @@ test/
 train/
 .vscode
 *.txt
+*.yaml
