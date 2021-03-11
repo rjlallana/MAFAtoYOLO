@@ -160,7 +160,6 @@ def bb_to_yolo(img, x,y,w,h):
 
     return yolo_x, yolo_y, yolo_w, yolo_h
 
-
 def yolo_to_bb(img, x,y,w,h):
     # img_width, img_height = img # width, height = im.size # PIL
     img_height, img_width = img # (height, width) # CV2 # height, width, channels = img.shape
@@ -175,7 +174,6 @@ def yolo_to_bb(img, x,y,w,h):
     w = int(w)
     h = int(h)
     return x, y, w, h
-
 
 def draw_bounding_box(row, mode):
     img = cv2.imread(mode+'/images/'+row['image_name'])
@@ -233,12 +231,17 @@ def get_label(row):
 def mafa_to_yolo_labels(df, mode):
     label_path = mode+'/labels/'
     image_path = mode+'/images/'
-    os.mkdir(label_path)
+    try:
+        os.mkdir(label_path)
+    except:
+        for f in os.listdir(label_path):
+            os.remove(os.path.join(label_path, f))
+
     for index, row in df.iterrows():
         with open(label_path+row.image_name[:-4]+'.txt','a') as f:
             try:
                 # img = cv2.imread(image_path+row.image_name) lento, solo necesito saber las dimensiones no cargar la imagen
-                img = Image.open(image_path+row.image_name) 
+                img = Image.open(image_path+row.image_name)
                 x, y, w, h = bb_to_yolo(img.size, row.x, row.y, row.w, row.h)
                 img.close()
 
@@ -254,6 +257,10 @@ def mafa_to_yolo_labels(df, mode):
                 print("Image "+ image_path+row.image_name + " doesn't exist.")
                 print(index)
 
+    with open(mode+'/'+mode+'_images.txt', 'w') as f:
+        for item in df.image_name.unique():
+            img_path = '../MAFAtoYOLO/train/images/'+item
+            f.write("%s\n" % img_path)
 
 def visualize_dataset(df, mode):
     for index, row in df.iterrows():
@@ -279,8 +286,6 @@ def visualize_img(row, mode):
     cv2.imshow('img', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
 
 def draw_yolo_bounding_box(img, row):
     # img = cv2.imread(mode+'/images/'+row['img_name'])
@@ -320,26 +325,6 @@ def get_yolo_labels(label_path):
             rows.append(row)
     return pd.DataFrame(data=rows, columns=['label', 'x','y','w','h'])
 
-# def get_yolo_labels():
-#     directory = os.fsencode(mode+'images/labels')
-#     for file in os.listdir(directory):
-#         filename = os.fsdecode(file)
-#         if filename.endswith(".txt"): 
-#             path = os.path.join(directory, filename)
-#             with open(path, "r") as f:
-#                 for line in f:
-#                     line = f.readline().split(' ')
-#                     img_name = filename[:-4]+'.jpg'
-#                     x = line[1]
-#                     y = line[2]
-#                     w = line[3]
-#                     h = line[4][:-1]
-#                     row = pd.Series(data = [img_name, x, y, w, h], index=['img_name', 'x', 'y', 'w', 'h'])
-
-#             continue
-#         else:
-#             continue
-
 def add_label_column(df):
     label_list = []
     for _, row in df.iterrows():
@@ -359,7 +344,6 @@ def data_check(df):
     print('Number of Mask incorrect :  %i / %i, %f %%' % (mask_incorrect, total, mask_incorrect*100/total))
     print('Number of No mask :  %i / %i, %f %%' % (no_mask, total, no_mask*100/total))
     print('Number of No Mask + Mask incorrect :  %i / %i, %f %%' % ((no_mask+mask_incorrect), total, (no_mask+mask_incorrect)*100/total))
-
 
 def train_fix_label(df):
     df[df['occ_type']=='-1'].replace({'occ_type': 'Simple', 'occ_degree': 'Fully'})
@@ -426,7 +410,7 @@ def main():
     # print('Test data stats')
     # data_check(test)
 
-    bbox_number = train.groupby(['image_name']).size()    
+    bbox_number = train.groupby(['image_name']).size()
 
     # Quiero que el dataset este compuesto por todas las imagenes las cuales:
     # Tenga mas de una bbox 
@@ -435,7 +419,7 @@ def main():
     print(train_mask_multiple)
     # Las mascarillas esten incorrectas
     train_mask_incorrect = train[train['label']=='Mask incorrect']
-    print('LEN TRAIN MASK INCORRECT',len(train_mask_incorrect))
+    # print('LEN TRAIN MASK INCORRECT', len(train_mask_incorrect))
     # Las personas no lleven mascarillla
     train_no_mask = train[train['label']=='No mask']
     # Y un % de de las imagenes en las que solo sale una mascarilla
