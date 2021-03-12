@@ -1,7 +1,0 @@
-# train: ../MAFAtoYOLO/train/images
-# val: ../MAFAtoYOLO/test/images
-train: ../MAFAtoYOLO/train/train_images.txt
-val: ../MAFAtoYOLO/test/test_images.txt
-
-nc: 3
-names: ['No mask', 'Mask', 'Mask incorrect']

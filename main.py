@@ -257,9 +257,10 @@ def mafa_to_yolo_labels(df, mode):
                 print("Image "+ image_path+row.image_name + " doesn't exist.")
                 print(index)
 
-    with open(mode+'/'+mode+'_images.txt', 'w') as f:
+    with open(mode+'/images.txt', 'w') as f:
         for item in df.image_name.unique():
-            img_path = '../MAFAtoYOLO/train/images/'+item
+            img_path = '../MAFAtoYOLO/'+mode+'/images/'+item
+            # img_path = item
             f.write("%s\n" % img_path)
 
 def visualize_dataset(df, mode):
