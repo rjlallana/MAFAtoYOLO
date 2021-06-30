@@ -327,7 +327,7 @@ def add_label_column(df):
 
 def data_check(df):
     total = len(df)
-
+    
     mask = (df['label'] == 'Mask').sum()
     mask_incorrect = (df['label'] == 'Mask incorrect').sum()
     no_mask = (df['label'] == 'No mask').sum()
@@ -380,7 +380,6 @@ def move_images(source_dir, target_dir):
 
 def make_yolo_labels(train, validation, test):
     print('Making yolo labels for training data...')
-    print(train)
     mafa_to_yolo_labels(train, 'train')
     print('Done')
 
@@ -394,7 +393,7 @@ def make_yolo_labels(train, validation, test):
 
 def main():
     # 1 - Crear la estructura del proyecto
-    # create_yolo_structure()
+    create_yolo_structure()
 
     # 1 - Pasar las anotaciones del .mat a un pandas dataframe
     train = make_train_data()
@@ -438,21 +437,14 @@ def main():
     # Ahora divimos el dataset en 5 partes, antes de ello mezclamos todas las filas para que cada parte sea lo mas aleatoria posible
     # 3 de las 5 partes sera el dataset para entrenar el model, 1 parte sera para validar y 1 parte para como test 
     splits = round(len(dataset) / 5)
-    print(f'{splits}')
     train = dataset[:splits*3]
     validation = dataset[(splits*3)+1:splits*4]
     test = dataset[splits*4:]
-    # print(f'{len(train)}')
-    # print(f'{len(validation)}')
-    # print(f'{len(test)}')
 
-    # 4 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
+
+    # 5 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
     make_yolo_labels(train, validation, test)
 
-    # dataframe a csv
-    # make_csv(train, 'train')
-    # make_csv(test, 'test')
-    
 def visualize_yolo_labels(img_path, df):
     img = cv2.imread(img_path)
     for _, row in df.iterrows():
@@ -463,17 +455,3 @@ def visualize_yolo_labels(img_path, df):
 
 if __name__ == "__main__":
     main()
-    # create_yolo_structure()
-
-    # wider_path = 'C:\\Users\\Rodrigo\\PFG\\datasets\\WIDER-FaceMask\\COVID-mask-detection_WIDER.tar\\COVID-mask-detection_WIDER\\Wider-mask-detection\\'
-    # sceneraios_path = wider_path+'labels\\train\\'
-    # print(os.listdir(sceneraios_path))
-    # for scenario in os.listdir(sceneraios_path):
-    #     directory = os.listdir(sceneraios_path+'\\'+scenario+'\\')
-    #     for filename in directory:
-    #         label_path = sceneraios_path+scenario+'\\'+filename
-    #         print(label_path)
-    #         df = get_yolo_labels(label_path)
-    #         img_name = label_path.split('\\')[-1][:-4]+'.jpg'
-    #         img_path = wider_path+'images\\train\\'+scenario+'\\'+img_name
-    #         visualize_yolo_labels(img_path, df)
