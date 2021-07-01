@@ -2,21 +2,10 @@ import os
 import scipy.io
 import pandas as pd
 import numpy as np
-<<<<<<< HEAD
-
-=======
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
+import json
 import cv2
 from PIL import Image
-import shutil
-from pathlib import Path
 
-<<<<<<< HEAD
-import shutil
-=======
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
-
-# get_rows: convertir numpy array en una lista para cada fila
 def get_rows(img_names, labels):
     rows = []
     # enumerate(img_names) -> iterador con estructura (indice, array(['nombre_imagen.jpg'])) 
@@ -50,12 +39,13 @@ def make_train_data():
     If any question, please contact me. (geshiming@iie.ac.cn)
     '''
 
-    train = scipy.io.loadmat('LabelTrainAll.mat') # dictionary with variable names as keys, and loaded matrices as values.
-    # print(train.keys()) # dict_keys(['__header__', '__version__', '__globals__', 'label_train'])
-    train_labels = train['label_train'][0] # array de (25876,) elementos
+    train = scipy.io.loadmat('LabelTrainAll.mat')
+    # print(train.keys())
+    train_labels = train['label_train']
+    train_labels = train_labels[0]
     img_names = train_labels['imgName']
     labels = train_labels['label'] # 21 labels
-    column_name = [ 'image_name'
+    train_columns = [ 'image_name'
                 ,'x'
                 ,'y'
                 ,'w'
@@ -78,7 +68,7 @@ def make_train_data():
                 ,'w4'
                 ,'h4']
     rows = get_rows(img_names, labels)
-    return pd.DataFrame(data=rows, columns=column_name)
+    return pd.DataFrame(data=rows, columns=train_columns)
 
 # Convierte el archivo LabelTestAll.mat en un DataFrame de pandas
 def make_test_data():
@@ -103,10 +93,11 @@ def make_test_data():
 
     test = scipy.io.loadmat('LabelTestAll.mat')
     # print(test.keys())
-    test_labels = test['LabelTest'][0]
+    test_labels = test['LabelTest']
+    test_labels = test_labels[0]
     img_names = test_labels['name']
     labels = test_labels['label']
-    column_name = [ 'image_name',
+    test_columns = [ 'image_name',
             'x',
             'y',
             'w',
@@ -126,11 +117,7 @@ def make_test_data():
             'w2',
             'h2']
     rows = get_rows(img_names, labels)
-    return pd.DataFrame(data=rows, columns=column_name)
-<<<<<<< HEAD
-=======
-
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
+    return pd.DataFrame(data=rows, columns=test_columns)
 
 def get_occluder_names(df):
     occluder_type = {
@@ -148,20 +135,14 @@ def get_occluder_names(df):
     df = df.replace({'occ_type': occluder_type, 'occ_degree': occluder_degree})
     return df
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
-# Pasar bounding box de MAFA al formato de YOLO, el formato de yolo es el siguiente:
-    # <object-class> - integer number of object from 0 to (classes-1)
-    # <x> <y> <width> <height> - float values relative to width and height of image, it can be equal from (0.0 to 1.0]
-    # for example: <x> = <absolute_x> / <image_width> or <height> = <absolute_height> / <image_height>
-    # atention: <x> <y> - are center of rectangle (are not top-left corner)
-<<<<<<< HEAD
-=======
+# <object-class> - integer number of object from 0 to (classes-1)
+# <x> <y> <width> <height> - float values relative to width and height of image, it can be equal from (0.0 to 1.0]
+# for example: <x> = <absolute_x> / <image_width> or <height> = <absolute_height> / <image_height>
+# atention: <x> <y> - are center of rectangle (are not top-left corner)
 
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 def bb_to_yolo(img, x,y,w,h):
+    # img_height, img_width = img.shape[:2] # (height, width) cv2 -> height, width PIL -> width, height xd
     img_width, img_height = img # width, height = im.size 
 
     yolo_x = (x+(w /2)) / img_width
@@ -179,8 +160,8 @@ def bb_to_yolo(img, x,y,w,h):
 
     return yolo_x, yolo_y, yolo_w, yolo_h
 
-# pasar el formato del bounding box de yolo al formato de mafa
 def yolo_to_bb(img, x,y,w,h):
+    # img_width, img_height = img # width, height = im.size # PIL
     img_height, img_width = img # (height, width) # CV2 # height, width, channels = img.shape
     if x > 0:
         x = (x - (w/2)) * img_width
@@ -194,19 +175,15 @@ def yolo_to_bb(img, x,y,w,h):
     h = int(h)
     return x, y, w, h
 
-<<<<<<< HEAD
-def draw_bounding_box(img, row): 
-=======
-def draw_bounding_box(row):
-    img = cv2.imread('/images/'+row['image_name'])
+def draw_bounding_box(row, mode):
+    img = cv2.imread(mode+'/images/'+row['image_name'])
     
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
     x = int(row[1])
     y = int(row[2])
     w = int(row[3])
     h = int(row[4])
-    _, label_name = get_label(row)
 
+    _, label_name = get_label(row)
     cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2) # x,y -> top-left, x+w, y+h -> botton-right 
     cv2.putText(img,'occluder_type: '+(row['occ_type']),(x,y+h+10),0,0.3,(0,255,0))
     cv2.putText(img,'occluder_degree: '+(row['occ_degree']),(x,y+h+20),0,0.3,(0,255,0))
@@ -237,10 +214,11 @@ def resize_and_padding(img, resize):
         value=color)
     return new_img
 
-<<<<<<< HEAD
-=======
+# <object-class> - integer number of object from 0 to (classes-1)
+# <x> <y> <width> <height> - float values relative to width and height of image, it can be equal from (0.0 to 1.0]
+# for example: <x> = <absolute_x> / <image_width> or <height> = <absolute_height> / <image_height>
+# atention: <x> <y> - are center of rectangle (are not top-left corner)
 
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 def get_label(row):
     if (row['occ_type']=="Simple" or row['occ_type']=="Complex") and row['occ_degree'] == "Fully":
         label, label_name = 1, 'Mask' # Mask
@@ -250,63 +228,46 @@ def get_label(row):
         label, label_name = 0, 'No mask' # No mask
     return label, label_name
 
-def mafa_to_yolo_labels(df, split):
-    label_path = 'labels/'+split+'/'
-    image_path = 'images/'
+def mafa_to_yolo_labels(df, mode):
+    label_path = mode+'/labels/'
+    image_path = mode+'/images/'
+    try:
+        os.mkdir(label_path)
+    except:
+        for f in os.listdir(label_path):
+            os.remove(os.path.join(label_path, f))
 
-    for f in os.listdir(label_path):
-        os.remove(os.path.join(label_path, f))
     for index, row in df.iterrows():
-        with open(label_path+row.image_name[:-4]+'.txt','a+') as f:
+        with open(label_path+row.image_name[:-4]+'.txt','a') as f:
             try:
                 # img = cv2.imread(image_path+row.image_name) lento, solo necesito saber las dimensiones no cargar la imagen
                 img = Image.open(image_path+row.image_name)
                 x, y, w, h = bb_to_yolo(img.size, row.x, row.y, row.w, row.h)
                 img.close()
+
                 label, _ = get_label(row)
                 for i in x, y, w, h:
                     write = True
                     if not(0.0 <= i < 1.0):
                         write = False
-                        break # Algunas anotaciones de los test estan mal y las x, y son mayores que el tamanio de la imagen 
+                        break # Muchas anotaciones de los test estan mal y las x, y son mayores que el tamanio de la imagen 
                 if (write):
                     f.write("%i %f %f %f %f\n"%(label, x, y, w, h))
             except FileNotFoundError:
                 print("Image "+ image_path+row.image_name + " doesn't exist.")
                 print(index)
-    # crear un archivo txt con la ruta de todas las imagenes
-    with open(label_path+'/images.txt', 'w') as f:
-        for img in df.image_name.unique():
-            img_path = '../MAFAtoYOLO/images/'+img
+
+    with open(mode+'/images.txt', 'w') as f:
+        for item in df.image_name.unique():
+            img_path = '../MAFAtoYOLO/'+mode+'/images/'+item
+            # img_path = item
             f.write("%s\n" % img_path)
 
-def visualize_dataset(df):
-<<<<<<< HEAD
-    # inicializar las variables
-    current_image_name = df.iloc[0].image_name
-    img = cv2.imread('images/'+current_image_name)
-    print(df)
+def visualize_dataset(df, mode):
     for index, row in df.iterrows():
         str_type = row['occ_type']
         str_degree = row['occ_degree']
-        _, label_name = get_label(row)
-
-        if current_image_name != row['image_name']:
-            if row['image_name'].startswith('test'):
-                cv2.imshow(current_image_name, img)
-                key = cv2.waitKey(0)
-                if key == 27: # escape
-                    break
-                cv2.destroyAllWindows()
-            img = cv2.imread('images/'+row['image_name']) # nueva imagen
-            current_image_name = row['image_name']
-
-        img = draw_bounding_box(img, row)
-=======
-    for index, row in df.iterrows():
-        str_type = row['occ_type']
-        str_degree = row['occ_degree']
-        img = draw_bounding_box(row)
+        img = draw_bounding_box(row, mode)
         _, label_name = get_label(row)
         # img = resize_and_padding(img, 640)
         cv2.imshow('type: '+str_type+' degree: '+str_degree+' label: '+label_name, img)
@@ -320,16 +281,16 @@ def visualize_dataset(df):
             break
         cv2.destroyAllWindows()
         prev = img
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
-def visualize_img(row):
-    img = draw_bounding_box(row)
+def visualize_img(row, mode):
+    img = draw_bounding_box(row, mode)
     cv2.imshow('img', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 def draw_yolo_bounding_box(img, row):
-    img_size = img.shape[:2]
+    # img = cv2.imread(mode+'/images/'+row['img_name'])
+    img_size = img_width, img_height = img.shape[:2]
     print(img_size)
     
     label = row[0] 
@@ -346,6 +307,7 @@ def draw_yolo_bounding_box(img, row):
     img = cv2.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
     img = cv2.circle(img, (x, y), radius=4, color=(0, 0, 255), thickness=-1)
     img = cv2.putText(img, 'label: '+ label, (x,y+h+10), 0,0.3, (0,255,0))
+
 
     return img
 
@@ -373,13 +335,12 @@ def add_label_column(df):
 
 def data_check(df):
     total = len(df)
-    
+
     mask = (df['label'] == 'Mask').sum()
     mask_incorrect = (df['label'] == 'Mask incorrect').sum()
     no_mask = (df['label'] == 'No mask').sum()
-    images_number = set(df['image_name'].tolist()) # set porque se repite el nombre de la imagen por cada mascarilla
-    print('Dateset number of images', len(images_number))
-    print('Dataset anotations: ', total)
+
+    print('Dataset files: ', total)
     print('Number of Mask : %i / %i, %f %%' % (mask, total, mask*100/total))
     print('Number of Mask incorrect :  %i / %i, %f %%' % (mask_incorrect, total, mask_incorrect*100/total))
     print('Number of No mask :  %i / %i, %f %%' % (no_mask, total, no_mask*100/total))
@@ -402,135 +363,87 @@ def test_fix_label(df):
     df = df.drop(index=[1627, 5851, 5852, 5853, 5854, 7202, 4898, 159])
     return df
 
-# Crea la estructura de carpetas que usa YOLO
-def create_yolo_structure():
-    # carpetas donde iran las imagenes
-    os.mkdir('images')
-    # carpetas donde iran las anotaciones
-    os.mkdir('labels')
-    os.mkdir('labels/train/')
-    os.mkdir('labels/val/')
-    os.mkdir('labels/test/')
-    # mover todas las imagenes de train y test a un nuevo directorio
-<<<<<<< HEAD
-    move_files('train/images', 'images')
-    move_files('test/images', 'images')
-=======
-    os.mkdir('dataset')
-    move_images('train/images', 'images')
-    move_images('test/images', 'images')
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
-    os.rmdir('train/images')
-    os.rmdir('train')
-    os.rmdir('test/images')
-    os.rmdir('test')
-
-<<<<<<< HEAD
-def move_files(source_dir, target_dir):
-    file_names = os.listdir(source_dir) 
-    for file in file_names:
-        shutil.move(os.path.join(source_dir, file), target_dir)
-
-def split_dataset(dataset):
-    # dividir por imagenes no por anotaciones
-    images_number = set(dataset['image_name'].tolist())
-    splits = round(len(dataset) / 5)
-    train = dataset[:splits*3]
-    validation = dataset[(splits*3)+1:splits*4]
-    test = dataset[splits*4:]
-
-=======
-def move_images(source_dir, target_dir):
-    img_names = os.listdir(source_dir) 
-    for img_name in img_names:
-        shutil.move(os.path.join(source_dir, img_name), target_dir)
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
-
-def make_yolo_labels(train, validation, test):
+def create_yolo_labels(train, test):
     print('Making yolo labels for training data...')
     mafa_to_yolo_labels(train, 'train')
-    print('Done')
-
-    print('Making yolo labels for validation data...')
-    mafa_to_yolo_labels(validation, 'val')
     print('Done')
 
     print('Making yolo labels for test data...')
     mafa_to_yolo_labels(test, 'test')
     print('Done')
 
-def main():
-    # 1 - Crear la estructura del proyecto
-<<<<<<< HEAD
-    # create_yolo_structure()
-=======
-    create_yolo_structure()
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
+def bbox(filename):
+    if filename[:3] == 'tra':
+        mode = 'train'
+        df = train[train['image_name'] == filename]
+        visualize_dataset(df, mode)
+    else:
+        mode = 'test'
+        df = test[test['image_name'] == filename]
+        visualize_dataset(df, mode)
+
+
+def debug(filename):
+    print(test[test['image_name'] == filename])
+    img = Image.open('test/images/'+filename)
+    print(img.size)
+    bbox(filename)
+
+
+def main():
     # 1 - Pasar las anotaciones del .mat a un pandas dataframe
     train = make_train_data()
     test = make_test_data()
-    # 2 - Cambiar las anotaciones numericas a strings
+    # 2 - Cambiar las anotaciones numericas accion real
     train = get_occluder_names(train)
     test = get_occluder_names(test)
     # 3 - Corregir imagenes mal anotadas
     train = train_fix_label(train)
 
-    # 4 - Insertar una columna con las etiquetas: Mask, No Mask, Mask Incorrect
     train.insert(loc=5, column='label', value=add_label_column(train))
     test.insert(loc=5, column='label', value=add_label_column(test))
 
-    dataset = pd.concat([train, test])
+    # visualize_dataset(df, 'train')
+    # print('Training data stats')
+    # data_check(train)
+
+    # print('Test data stats')
+    # data_check(test)
+
+    bbox_number = train.groupby(['image_name']).size()
 
     # Quiero que el dataset este compuesto por todas las imagenes las cuales:
     # Tenga mas de una bbox 
-    bbox_number = dataset.groupby(['image_name']).size()
     more_than_one = bbox_number[bbox_number > 1]
-    train_mask_multiple = dataset[dataset['image_name'].isin(more_than_one.index)]
+    train_mask_multiple = train[train['image_name'].isin(more_than_one.index)]
+    print(train_mask_multiple)
     # Las mascarillas esten incorrectas
-    train_mask_incorrect = dataset[dataset['label']=='Mask incorrect']
+    train_mask_incorrect = train[train['label']=='Mask incorrect']
+    # print('LEN TRAIN MASK INCORRECT', len(train_mask_incorrect))
     # Las personas no lleven mascarillla
-    train_no_mask = dataset[dataset['label']=='No mask']
+    train_no_mask = train[train['label']=='No mask']
     # Y un % de de las imagenes en las que solo sale una mascarilla
     one = bbox_number[bbox_number == 1]
-    train_mask = dataset[dataset['image_name'].isin(one.index)]
+    train_mask = train[train['image_name'].isin(one.index)]
+    print(train_mask)
 
-    print('Dataset ANTES:')
-    data_check(dataset)
+    print('BEFORE: Training data stats')
+    data_check(train)
 
-    train_mask = train_mask.sample(frac = 0.15) # 1/5 29733 / 39485, 75.302013 %
+    train_mask = train_mask.sample(frac = 0.15) # 1/5
     # Unimos todas las separaciones y este sera el dataset final
-    dataset = pd.concat([train_mask_multiple, train_mask, train_mask_incorrect, train_no_mask], ignore_index=True)
-    dataset = dataset.drop_duplicates()
-<<<<<<< HEAD
+    train = pd.concat([train_mask_multiple, train_mask, train_mask_incorrect, train_no_mask], ignore_index=True)
+    train = train.drop_duplicates()
 
-    print('Dataset DESPUES:')
-    data_check(dataset)
+    print('AFTER: Training data stats')
+    data_check(train)
 
-    visualize_dataset(dataset)
-    # Ahora divimos el dataset en 5 partes
-    # 3 de las 5 partes sera el dataset para entrenar el model, 1 parte sera para validar y 1 parte para como test 
-    
-    # train, val, test = split_dataset(dataset)
+    print('Test data stats')
+    data_check(test)
 
-    # 5 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
-    # make_yolo_labels(train, validation, test)
-=======
-
-    print('Dataset DESPUES:')
-    data_check(dataset)
-
-    # Ahora divimos el dataset en 5 partes, antes de ello mezclamos todas las filas para que cada parte sea lo mas aleatoria posible
-    # 3 de las 5 partes sera el dataset para entrenar el model, 1 parte sera para validar y 1 parte para como test 
-    splits = round(len(dataset) / 5)
-    train = dataset[:splits*3]
-    validation = dataset[(splits*3)+1:splits*4]
-    test = dataset[splits*4:]
-
-
-    # 5 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
-    make_yolo_labels(train, validation, test)
->>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
+    # 4 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
+    create_yolo_labels(train, test)
 
 def visualize_yolo_labels(img_path, df):
     img = cv2.imread(img_path)
@@ -542,3 +455,15 @@ def visualize_yolo_labels(img_path, df):
 
 if __name__ == "__main__":
     main()
+    # wider_path = 'C:\\Users\\Rodrigo\\PFG\\datasets\\WIDER-FaceMask\\COVID-mask-detection_WIDER.tar\\COVID-mask-detection_WIDER\\Wider-mask-detection\\'
+    # sceneraios_path = wider_path+'labels\\train\\'
+    # print(os.listdir(sceneraios_path))
+    # for scenario in os.listdir(sceneraios_path):
+    #     directory = os.listdir(sceneraios_path+'\\'+scenario+'\\')
+    #     for filename in directory:
+    #         label_path = sceneraios_path+scenario+'\\'+filename
+    #         print(label_path)
+    #         df = get_yolo_labels(label_path)
+    #         img_name = label_path.split('\\')[-1][:-4]+'.jpg'
+    #         img_path = wider_path+'images\\train\\'+scenario+'\\'+img_name
+    #         visualize_yolo_labels(img_path, df)
