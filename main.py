@@ -2,11 +2,19 @@ import os
 import scipy.io
 import pandas as pd
 import numpy as np
+<<<<<<< HEAD
 
+=======
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 import cv2
 from PIL import Image
-
 import shutil
+from pathlib import Path
+
+<<<<<<< HEAD
+import shutil
+=======
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
 # get_rows: convertir numpy array en una lista para cada fila
 def get_rows(img_names, labels):
@@ -119,6 +127,10 @@ def make_test_data():
             'h2']
     rows = get_rows(img_names, labels)
     return pd.DataFrame(data=rows, columns=column_name)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
 def get_occluder_names(df):
     occluder_type = {
@@ -136,11 +148,19 @@ def get_occluder_names(df):
     df = df.replace({'occ_type': occluder_type, 'occ_degree': occluder_degree})
     return df
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 # Pasar bounding box de MAFA al formato de YOLO, el formato de yolo es el siguiente:
     # <object-class> - integer number of object from 0 to (classes-1)
     # <x> <y> <width> <height> - float values relative to width and height of image, it can be equal from (0.0 to 1.0]
     # for example: <x> = <absolute_x> / <image_width> or <height> = <absolute_height> / <image_height>
     # atention: <x> <y> - are center of rectangle (are not top-left corner)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 def bb_to_yolo(img, x,y,w,h):
     img_width, img_height = img # width, height = im.size 
 
@@ -174,7 +194,13 @@ def yolo_to_bb(img, x,y,w,h):
     h = int(h)
     return x, y, w, h
 
+<<<<<<< HEAD
 def draw_bounding_box(img, row): 
+=======
+def draw_bounding_box(row):
+    img = cv2.imread('/images/'+row['image_name'])
+    
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
     x = int(row[1])
     y = int(row[2])
     w = int(row[3])
@@ -211,6 +237,10 @@ def resize_and_padding(img, resize):
         value=color)
     return new_img
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 def get_label(row):
     if (row['occ_type']=="Simple" or row['occ_type']=="Complex") and row['occ_degree'] == "Fully":
         label, label_name = 1, 'Mask' # Mask
@@ -227,7 +257,7 @@ def mafa_to_yolo_labels(df, split):
     for f in os.listdir(label_path):
         os.remove(os.path.join(label_path, f))
     for index, row in df.iterrows():
-        with open(label_path+row.image_name[:-4]+'.txt','a') as f:
+        with open(label_path+row.image_name[:-4]+'.txt','a+') as f:
             try:
                 # img = cv2.imread(image_path+row.image_name) lento, solo necesito saber las dimensiones no cargar la imagen
                 img = Image.open(image_path+row.image_name)
@@ -251,6 +281,7 @@ def mafa_to_yolo_labels(df, split):
             f.write("%s\n" % img_path)
 
 def visualize_dataset(df):
+<<<<<<< HEAD
     # inicializar las variables
     current_image_name = df.iloc[0].image_name
     img = cv2.imread('images/'+current_image_name)
@@ -271,6 +302,25 @@ def visualize_dataset(df):
             current_image_name = row['image_name']
 
         img = draw_bounding_box(img, row)
+=======
+    for index, row in df.iterrows():
+        str_type = row['occ_type']
+        str_degree = row['occ_degree']
+        img = draw_bounding_box(row)
+        _, label_name = get_label(row)
+        # img = resize_and_padding(img, 640)
+        cv2.imshow('type: '+str_type+' degree: '+str_degree+' label: '+label_name, img)
+        print(row['image_name'])
+        key = cv2.waitKey(0)
+        if key == ord('a'):
+            cv2.imshow('type: '+str_type+' degree:'+str_degree, prev) 
+            print(row['image_name'])
+            key = cv2.waitKey(0)
+        elif key == 27: # escape
+            break
+        cv2.destroyAllWindows()
+        prev = img
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
 def visualize_img(row):
     img = draw_bounding_box(row)
@@ -323,7 +373,7 @@ def add_label_column(df):
 
 def data_check(df):
     total = len(df)
-
+    
     mask = (df['label'] == 'Mask').sum()
     mask_incorrect = (df['label'] == 'Mask incorrect').sum()
     no_mask = (df['label'] == 'No mask').sum()
@@ -362,13 +412,20 @@ def create_yolo_structure():
     os.mkdir('labels/val/')
     os.mkdir('labels/test/')
     # mover todas las imagenes de train y test a un nuevo directorio
+<<<<<<< HEAD
     move_files('train/images', 'images')
     move_files('test/images', 'images')
+=======
+    os.mkdir('dataset')
+    move_images('train/images', 'images')
+    move_images('test/images', 'images')
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
     os.rmdir('train/images')
     os.rmdir('train')
     os.rmdir('test/images')
     os.rmdir('test')
 
+<<<<<<< HEAD
 def move_files(source_dir, target_dir):
     file_names = os.listdir(source_dir) 
     for file in file_names:
@@ -382,6 +439,12 @@ def split_dataset(dataset):
     validation = dataset[(splits*3)+1:splits*4]
     test = dataset[splits*4:]
 
+=======
+def move_images(source_dir, target_dir):
+    img_names = os.listdir(source_dir) 
+    for img_name in img_names:
+        shutil.move(os.path.join(source_dir, img_name), target_dir)
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
 def make_yolo_labels(train, validation, test):
     print('Making yolo labels for training data...')
@@ -398,7 +461,11 @@ def make_yolo_labels(train, validation, test):
 
 def main():
     # 1 - Crear la estructura del proyecto
+<<<<<<< HEAD
     # create_yolo_structure()
+=======
+    create_yolo_structure()
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
     # 1 - Pasar las anotaciones del .mat a un pandas dataframe
     train = make_train_data()
@@ -435,6 +502,7 @@ def main():
     # Unimos todas las separaciones y este sera el dataset final
     dataset = pd.concat([train_mask_multiple, train_mask, train_mask_incorrect, train_no_mask], ignore_index=True)
     dataset = dataset.drop_duplicates()
+<<<<<<< HEAD
 
     print('Dataset DESPUES:')
     data_check(dataset)
@@ -447,6 +515,22 @@ def main():
 
     # 5 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
     # make_yolo_labels(train, validation, test)
+=======
+
+    print('Dataset DESPUES:')
+    data_check(dataset)
+
+    # Ahora divimos el dataset en 5 partes, antes de ello mezclamos todas las filas para que cada parte sea lo mas aleatoria posible
+    # 3 de las 5 partes sera el dataset para entrenar el model, 1 parte sera para validar y 1 parte para como test 
+    splits = round(len(dataset) / 5)
+    train = dataset[:splits*3]
+    validation = dataset[(splits*3)+1:splits*4]
+    test = dataset[splits*4:]
+
+
+    # 5 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
+    make_yolo_labels(train, validation, test)
+>>>>>>> 573665b421da04aa383c86b7cb122551fe154b25
 
 def visualize_yolo_labels(img_path, df):
     img = cv2.imread(img_path)
