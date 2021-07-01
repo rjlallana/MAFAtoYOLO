@@ -1,7 +1,2 @@
-LabelTestAll.mat
-LabelTrainAll.mat
-test/
-train/
-.vscode
-*.txt
-*.yaml
+*
+!main.py
