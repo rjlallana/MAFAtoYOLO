@@ -429,7 +429,7 @@ def make_yolo_labels(train, validation, test):
 
 def main():
     # 1 - Crear la estructura del proyecto
-    # create_yolo_structure()
+    create_yolo_structure()
 
     # 1 - Pasar las anotaciones del .mat a un pandas dataframe
     train = make_train_data()
