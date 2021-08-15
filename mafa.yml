@@ -1,0 +1,6 @@
+train: ../MAFAtoYOLO/train/
+val: ../MAFAtoYOLO/val/
+test: ../MAFAtoYOLO/test/
+
+nc: 3
+names: ['No mask', 'Mask', 'Mask incorrect']
