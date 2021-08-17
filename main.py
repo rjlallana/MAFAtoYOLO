@@ -418,8 +418,8 @@ def create_yolo_structure():
 def move_images(source_dir, target_dir, img_list = []):
     if not img_list:
       img_list = os.listdir(source_dir) 
-    for img_name in img_names:
-        shutil.move(os.path.join(source_dir, img_name), target_dir)
+    for img in img_list:
+        shutil.move(os.path.join(source_dir, img), target_dir)
 
 def make_yolo_labels(train, validation, test):
     print('Making yolo labels for training data...')
