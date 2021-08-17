@@ -457,17 +457,8 @@ def main():
 
     train = train.astype({'label': str})
 
-    # print('Dataset train:')
-    # data_check(train)
-
-    # print('Dataset test:')
-    # data_check(test)
-
     dataset = pd.concat([train, test])
     
-    # visualize_img(dataset[dataset['image_name'] == 'train_00001208.jpg'])
-    # visualize_img(dataset[dataset['image_name'] == 'train_00000521.jpg'])
-
     test = dataset[dataset['label'] == 'No label']
     train = dataset[dataset['label'] != 'No label']
 
@@ -507,8 +498,7 @@ def main():
     split = round(len(train) * .75)    
     validation = train[split+1:]
     train = train[:split]
-    print(train)
-    print(validation)
+  
     print('Dataset: %i\t Train: %i\t Validation: %i\t Test: %i' % (len(dataset), len(train), len(validation), len(test)))
     print('TRAIN:')
     data_check(train)
