@@ -265,6 +265,10 @@ def mafa_to_yolo_labels(df, split):
             img_path = '../MAFAtoYOLO/images/'+img
             f.write("%s\n" % img_path)
 
+    # mover las imagenes a la carpeta correspondiente
+    img_list = list(df.image_name.unique())
+    move_images(source_dir='images', target_dir=split+'/images', img_list=img_list)
+
 def visualize_dataset(df):
     prev_img = df.iloc[0]['image_name']
     img = cv2.imread('images/'+prev_img)
@@ -394,15 +398,17 @@ def test_fix_label(df):
 def create_yolo_structure():
     # carpetas donde iran las imagenes
     os.mkdir('images')
+    # mover todas las imagenes a esa carpeta
     move_images('train/images', 'images')
     move_images('test/images', 'images')
-    # remove directory
-    shutil.rmtree('train/images')
-    shutil.rmtree('test/images')
-    # carpetas donde iran images.txt
+    # crear carpetas para train, val y test
     # os.mkdir('train')
     os.mkdir('val')
     # os.mkdir('test')
+    # carpetas donde iran las imagenes
+    # os.mkdir('train/imagenes')
+    os.mkdir('val/imagenes')
+    # os.mkdir('test/imagenes')
     # carpetas donde iran las anotaciones
     os.mkdir('train/labels')
     os.mkdir('val/labels')
