@@ -415,8 +415,9 @@ def create_yolo_structure():
     os.mkdir('test/labels')
 
 # Mover las imagenes de un directorio a otro
-def move_images(source_dir, target_dir):
-    img_names = os.listdir(source_dir) 
+def move_images(source_dir, target_dir, img_list = []):
+    if not img_list:
+      img_list = os.listdir(source_dir) 
     for img_name in img_names:
         shutil.move(os.path.join(source_dir, img_name), target_dir)
 
@@ -456,17 +457,8 @@ def main():
 
     train = train.astype({'label': str})
 
-    # print('Dataset train:')
-    # data_check(train)
-
-    # print('Dataset test:')
-    # data_check(test)
-
     dataset = pd.concat([train, test])
     
-    # visualize_img(dataset[dataset['image_name'] == 'train_00001208.jpg'])
-    # visualize_img(dataset[dataset['image_name'] == 'train_00000521.jpg'])
-
     test = dataset[dataset['label'] == 'No label']
     train = dataset[dataset['label'] != 'No label']
 
