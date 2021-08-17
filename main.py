@@ -406,9 +406,9 @@ def create_yolo_structure():
     os.mkdir('val')
     # os.mkdir('test')
     # carpetas donde iran las imagenes
-    # os.mkdir('train/imagenes')
-    os.mkdir('val/imagenes')
-    # os.mkdir('test/imagenes')
+    # os.mkdir('train/images')
+    os.mkdir('val/images')
+    # os.mkdir('test/images')
     # carpetas donde iran las anotaciones
     os.mkdir('train/labels')
     os.mkdir('val/labels')
