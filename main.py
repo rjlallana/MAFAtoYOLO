@@ -264,7 +264,10 @@ def mafa_to_yolo_labels(df, split):
         for img in df.image_name.unique():
             img_path = '../MAFAtoYOLO/images/'+img
             f.write("%s\n" % img_path)
-
+    # mover las imagenes a la carpeta correspondiente
+    img_list = list(df.image_name.unique())
+    os.mkdir(split+'/images')
+    move_images(source_dir='images', target_dir=split+'/images', img_list=img_list)
 def visualize_dataset(df):
     prev_img = df.iloc[0]['image_name']
     img = cv2.imread('images/'+prev_img)
@@ -399,20 +402,24 @@ def create_yolo_structure():
     # remove directory
     shutil.rmtree('train/images')
     shutil.rmtree('test/images')
-    # carpetas donde iran images.txt
+    # carpetas donde iran las imagenes
     # os.mkdir('train')
     os.mkdir('val')
     # os.mkdir('test')
+    # mover las imagenes
+
     # carpetas donde iran las anotaciones
     os.mkdir('train/labels')
     os.mkdir('val/labels')
     os.mkdir('test/labels')
 
 # Mover las imagenes de un directorio a otro
-def move_images(source_dir, target_dir):
-    img_names = os.listdir(source_dir) 
-    for img_name in img_names:
-        shutil.move(os.path.join(source_dir, img_name), target_dir)
+def move_images(source_dir, target_dir, img_list=[]):
+    if not img_list:
+        img_list = os.listdir(source_dir) 
+    for img in img_list:
+        # print(source_dir+img)
+        shutil.move(os.path.join(source_dir, img), target_dir)
 
 def make_yolo_labels(train, validation, test):
     print('Making yolo labels for training data...')
@@ -428,8 +435,8 @@ def make_yolo_labels(train, validation, test):
     print('Done')
 
 def main():
-    # 1 - Crear la estructura del proyecto
-    create_yolo_structure()
+    # # 1 - Crear la estructura del proyecto
+    # create_yolo_structure()
 
     # 1 - Pasar las anotaciones del .mat a un pandas dataframe
     train = make_train_data()
