@@ -254,7 +254,7 @@ def mafa_to_yolo_labels(df, split):
                     if not(0.0 <= i < 1.0):
                         write = False
                         break # Algunas anotaciones de los test estan mal y las x, y son mayores que el tamanio de la imagen 
-                if (write):
+                if write:
                     f.write("%i %f %f %f %f\n"%(label, x, y, w, h))
             except FileNotFoundError:
                 print("Image "+ image_path+row.image_name + " doesn't exist.")
@@ -265,9 +265,9 @@ def mafa_to_yolo_labels(df, split):
             img_path = '../MAFAtoYOLO/images/'+img
             f.write("%s\n" % img_path)
 
-    # mover las imagenes a la carpeta correspondiente
-    img_list = list(df.image_name.unique())
-    move_images(source_dir='images', target_dir=split+'/images', img_list=img_list)
+    # copiar las imagenes a la carpeta correspondiente
+    image_list = list(df.image_name.unique())
+    move_images(source_dir='images', target_dir=split+'/images', image_list=image_list)
 
 def visualize_dataset(df):
     prev_img = df.iloc[0]['image_name']
@@ -384,6 +384,9 @@ def test_fix_label(df):
 
 # Crea la estructura de carpetas que usa YOLO
 '''
+Primero mover todas las imagenes(train/images y test/images) a carpeta comun: images
+Crear 3 tipos de carpetas donde se guardaran los datos: train, test y valid
+La estructura seria la siguiente:
 /parent_folder
     /MAFAtoYOLO
         /images
@@ -415,11 +418,19 @@ def create_yolo_structure():
     os.mkdir('test/labels')
 
 # Mover las imagenes de un directorio a otro
-def move_images(source_dir, target_dir, img_list = []):
-    if not img_list:
-      img_list = os.listdir(source_dir) 
-    for img in img_list:
-        shutil.move(os.path.join(source_dir, img), target_dir)
+def move_images(source_dir, target_dir, image_list = []):
+    if not os.path.exists(target_dir):
+        os.mkdir(target_dir)
+    for image in image_list if image_list else os.listdir(source_dir):
+        shutil.move(os.path.join(source_dir, image), target_dir)
+
+# copy all files from one folder to another
+def copy_images(source_dir, target_dir, image_list = []):
+    if not os.path.exists(target_dir):
+        os.mkdir(target_dir)
+    for image in image_list if image_list else os.listdir(source_dir):
+        shutil.copy(os.path.join(source_dir, image), target_dir)
+
 
 def make_yolo_labels(train, validation, test):
     print('Making yolo labels for training data...')
@@ -459,9 +470,14 @@ def main():
 
     dataset = pd.concat([train, test])
     
-    test = dataset[dataset['label'] == 'No label']
     train = dataset[dataset['label'] != 'No label']
+    test  = dataset[dataset['label'] == 'No label']
 
+    test_images_name = test.image_name.values
+
+    test  = dataset[dataset['image_name'].isin(test_images_name)]
+    train = dataset[~dataset['image_name'].isin(test_images_name)]
+   
     # race_1 = dataset[dataset['race'] == -1.] # 1.0 -> caucasico, 2.0 -> oriental/asitico, 3.0 -> afroamericano
 
     # Quiero que el dataset de entrenamiento este compuesto por todas las imagenes las cuales:
@@ -498,8 +514,8 @@ def main():
     split = round(len(train) * .75)    
     validation = train[split+1:]
     train = train[:split]
-    print(train)
-    print(validation)
+    # print(train)
+    # print(validation)
     print('Dataset: %i\t Train: %i\t Validation: %i\t Test: %i' % (len(dataset), len(train), len(validation), len(test)))
     print('TRAIN:')
     data_check(train)
@@ -507,6 +523,24 @@ def main():
     data_check(validation)
     print('TEST:')
     data_check(test)
+
+    train_img_list = set(train.image_name.values)
+    validation_img_list = set(validation.image_name.values)
+    test_img_list = set(test.image_name.values)
+
+
+    print('Train comparte imagenes con val o test?')
+    print(any(item in train_img_list for item in validation_img_list))
+    print(any(item in train_img_list for item in test_img_list))
+
+    print('Validation comparte imagenes con train o test?')
+    print(any(item in validation_img_list for item in train_img_list))
+    print(any(item in validation_img_list for item in test_img_list))
+
+    print('Test comparte imagenes con train o val?')
+    print(any(item in test_img_list for item in train_img_list))
+    print(any(item in test_img_list for item in validation_img_list))
+
 
     # 5 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
     make_yolo_labels(train, validation, test)
