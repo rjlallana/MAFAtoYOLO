@@ -5,7 +5,8 @@ import numpy as np
 import cv2
 from PIL import Image
 import shutil
-from pathlib import Path
+import random
+from IPython.display import clear_output
 
 
 # Convertir numpy array en una lista para cada fila
@@ -180,9 +181,9 @@ def draw_bb(row, img):
     color = get_color(label)
 
     cv2.rectangle(img,(x,y),(x+w,y+h),color,2) # x,y -> top-left, x+w, y+h -> botton-right 
-    cv2.putText(img,'type: '+(row['occ_type']),(x,y+h+10),0,0.3,color)
+    cv2.putText(img,'type: '+(str(row['occ_type'])),(x,y+h+10),0,0.3,color)
     cv2.putText(img,'degree: '+(str(row['occ_degree'])),(x,y+h+20),0,0.3,color)
-    cv2.putText(img,'label: '+label, (x,y+h+30),0,0.3,color)
+    cv2.putText(img,'label: '+str(label), (x,y+h+30),0,0.3,color)
 
     # cv2.circle(img, (x+int(w/2), y+int(h/2)), radius=4, color=(0, 0, 255), thickness=-1) 
 
@@ -220,6 +221,14 @@ def get_occluder_names(df):
     return df
 
 def get_label(row):
+    try:
+        face_type = row['face_type']
+        if face_type == 1.0:
+            return 1, 'Mask'
+        elif face_type == 2.0:
+            return 0, 'No mask'
+    except:
+        pass
     occ_type = row['occ_type']
     occ_degree = row['occ_degree']
     # print(occ_type(occ_degree))
@@ -238,7 +247,7 @@ def get_label(row):
 def mafa_to_yolo_labels(df, split):
     label_path = split+'/labels/'
     image_path = 'images/'
-
+    image_list = []
     for f in os.listdir(label_path):
         os.remove(os.path.join(label_path, f))
     for index, row in df.iterrows():
@@ -256,14 +265,17 @@ def mafa_to_yolo_labels(df, split):
                         break # Algunas anotaciones de los test estan mal y las x, y son mayores que el tamanio de la imagen 
                 if write:
                     f.write("%i %f %f %f %f\n"%(label, x, y, w, h))
+                    image_list.append(row.image_name)
             except FileNotFoundError:
                 print("Image "+ image_path+row.image_name + " doesn't exist.")
                 print(index)
+
     # crear un archivo txt con la ruta de todas las imagenes
-    with open(split+'/images.txt', 'w') as f:
-        for img in df.image_name.unique():
-            img_path = '../MAFAtoYOLO/images/'+img
-            f.write("%s\n" % img_path)
+    image_list = list(set(image_list)) # eliminar duplicados
+    # with open(split+'/images.txt', 'w') as f:
+    #     for img in image_list:
+    #         img_path = '../MAFAtoYOLO/images/'+img
+    #         f.write("%s\n" % img_path)
 
     # copiar las imagenes a la carpeta correspondiente
     image_list = list(df.image_name.unique())
@@ -272,53 +284,76 @@ def mafa_to_yolo_labels(df, split):
 def visualize_dataset(df):
     prev_img = df.iloc[0]['image_name']
     img = cv2.imread('images/'+prev_img)
+    row_info = []
     for index, row in df.iterrows():
-        print(row)
-        _, label_name = get_label(row)            
         if prev_img != row['image_name']:
             img = resize_and_padding(img, 1280)
-            cv2.imshow(row['image_name'], img)
+            cv2.imshow(prev_img, img)
+            for s in row_info: print(s)
+            # print('\n'.join(' '.join(map(str,s)) for s in row_info))
+            # print(row_info, sep='\n')
+            row_info = []
             prev = img
             img = cv2.imread('./images/'+row['image_name'])
             img = draw_bb(row, img)
         else:
             img = draw_bb(row, img)
+        # ocludder bb en test x1,y1,w1,h1 y en train x3,y3,w3,h3, test tiene ademas face_type que es la anotacion correcta
+        if row.image_name.startswith('test'):
+            row_info.append([row.image_name, row.x, row.y, row.w, row.h, row.label, row.face_type, row.occ_type, row.occ_degree, row.x1, row.y1, row.w1, row.h1])
+        else: 
+            row_info.append([row.image_name, row.x, row.y, row.w, row.h, row.label, row.occ_type, row.occ_degree, row.x3, row.y3, row.w3, row.h3])
         key = cv2.waitKey(0)
         if key == ord('a'):
-            cv2.imshow('prev', prev) 
+            cv2.imshow('prev', prev)
             print(row['image_name'])
             key = cv2.waitKey(0)
         elif key == 27: # escape
             break
-        cv2.destroyAllWindows()
         prev_img = row['image_name']
+        clear_output(wait=True)
+        cv2.destroyAllWindows()
+
+    cv2.destroyAllWindows()
+
 
 def visualize_img(row):
     # create pandas dataframe
     df = pd.DataFrame(data = row)
     visualize_dataset(df)
 
-def draw_yolo_bb(img, row):
-    img_size = img.shape[:2]
-    print(img_size)
-    
-    label = row[0] 
+def yolo_to_mafa_label(label):
+    if label == '0':
+        return 'No mask'
+    elif label == '1':
+        return 'Mask'
+    elif label == '2':
+        return 'Mask incorrect'
+    else:
+        return 'No label'    
 
-    x = float(row[1])
-    y = float(row[2])
-    w = float(row[3])
-    h = float(row[4])
+def draw_yolo_bb(split, image_name):
+    image_path = split + '/images/'+image_name
+    label_path = split + '/labels/'+image_name[:-4]+'.txt'
 
-    print(x, y, w, h)
-    x, y, w, h = yolo_to_mafa(img_size, x, y, w, h)
-    print(x, y, w, h)
+    # for each line in the label file
+    with open(label_path) as f:
+        lines = f.readlines()
+        for line in lines:
+            # split the line into the label and the coordinates
+            label, x, y, w, h = line.split()
+            label = yolo_to_mafa_label(label)
+            # draw the bounding box on the image
+            cv2.rectangle(image_path, (int(x), int(y)), (int(x)+int(w), int(y)+int(h)), get_color(label), 2)
+            # show the image with the bounding box
+            cv2.imshow(image_name, image_path)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
-    img = cv2.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
-    img = cv2.circle(img, (x, y), radius=4, color=(0, 0, 255), thickness=-1)
-    img = cv2.putText(img, 'label: '+ label, (x,y+h+10), 0,0.3, (0,255,0))
-
-
-    return img
+def check_yolo_labels(df, split):
+    for index, row in df.iterrows():
+        print(index)
+        draw_yolo_bb(split, row.image_name)
 
 def get_yolo_labels(label_path):
     rows = []
@@ -377,7 +412,7 @@ def test_fix_label(df):
     for i in images_index:
         row = df.loc[i]
         print(row)
-        visualize_dataset(row)
+        visualize_img(row)
         
     df = df.drop(index=[1627, 5851, 5852, 5853, 5854, 7202, 4898, 159])
     return df
@@ -398,6 +433,21 @@ La estructura seria la siguiente:
         /test/images.txt
     /yolo
 '''
+def reset():
+    # delete images files and folder
+    for folder in ['images', 'train', 'test', 'val']:
+        if os.path.exists(folder):
+            shutil.rmtree(folder)
+    # remove .mat files
+    for file in os.listdir('.'):
+        if file.endswith('.mat'):
+            os.remove(file)
+    # unzip mafa.zip
+    # zip_ref = zipfile.ZipFile('mafa.zip', 'r')
+    # zip_ref.extractall('.')
+    # zip_ref.close()
+    os.system('unzip -q MAFA.zip')
+
 def create_yolo_structure():
     # carpetas donde iran las imagenes
     os.mkdir('images')
@@ -422,14 +472,20 @@ def move_images(source_dir, target_dir, image_list = []):
     if not os.path.exists(target_dir):
         os.mkdir(target_dir)
     for image in image_list if image_list else os.listdir(source_dir):
-        shutil.move(os.path.join(source_dir, image), target_dir)
+        try:
+            shutil.move(os.path.join(source_dir, image), target_dir)
+        except FileNotFoundError:
+            print('File not found: ', os.path.join(source_dir, image))
 
 # copy all files from one folder to another
 def copy_images(source_dir, target_dir, image_list = []):
     if not os.path.exists(target_dir):
         os.mkdir(target_dir)
     for image in image_list if image_list else os.listdir(source_dir):
-        shutil.copy(os.path.join(source_dir, image), target_dir)
+        try:
+            shutil.copy(os.path.join(source_dir, image), target_dir)
+        except FileNotFoundError:
+            print('File not found: ', os.path.join(source_dir, image))
 
 
 def make_yolo_labels(train, validation, test):
@@ -446,112 +502,81 @@ def make_yolo_labels(train, validation, test):
     print('Done')
 
 def main():
+    # print('Reseting...')
+    # reset()
     # 1 - Crear la estructura del proyecto
-    create_yolo_structure()
+    print('Create yolo structure')
+    # create_yolo_structure()
 
-    # 1 - Pasar las anotaciones del .mat a un pandas dataframe
+    print('Loading dataset')
+    # 2 - Pasar las anotaciones del .mat a un pandas dataframe
     train = make_train_data()
     test = make_test_data()
 
-    # 2 - Cambiar las anotaciones numericas a strings
+    # 3 - Cambiar las anotaciones numericas a strings
     train = get_occluder_names(train)
     test = get_occluder_names(test)
     test = test.astype({'occ_degree': int}) # test[occ_degree] tiene valores decimales, pasar a int como en train
-    # 3 - Corregir imagenes mal anotadas
-    train = train_fix_label(train)
-    # test = test_fix_label(test)
-
     # 4 - Insertar una columna con las etiquetas: Mask, No Mask, Mask Incorrect
-    # dependiendo del tipo de oclusion y su grado
     train.insert(loc=5, column='label', value=add_label_column(train))
     test.insert(loc=5, column='label', value=add_label_column(test))
 
     train = train.astype({'label': str})
+    # 5 - Corregir imagenes mal anotadas
+    train = train_fix_label(train)
+    # test = test_fix_label(test)
 
+    # 6 - Unificar train y test
     dataset = pd.concat([train, test])
-    
-    train = dataset[dataset['label'] != 'No label']
-    test  = dataset[dataset['label'] == 'No label']
-
-    test_images_name = test.image_name.values
-
-    test  = dataset[dataset['image_name'].isin(test_images_name)]
-    train = dataset[~dataset['image_name'].isin(test_images_name)]
-   
+    dataset = dataset[dataset['label']!='No label']
     # race_1 = dataset[dataset['race'] == -1.] # 1.0 -> caucasico, 2.0 -> oriental/asitico, 3.0 -> afroamericano
-
+   
+    # 7 - Crear el dataset final
     # Quiero que el dataset de entrenamiento este compuesto por todas las imagenes las cuales:
     # Tenga mas de una bounding box (bb) 
-    bb_number = train.groupby(['image_name']).size()
+    bb_number = dataset.groupby(['image_name']).size()
     more_than_one = bb_number[bb_number > 1]
-    mask_multiple = train[train['image_name'].isin(more_than_one.index)]
+    mask_multiple = dataset[dataset['image_name'].isin(more_than_one.index)]
     # Las mascarillas esten incorrectas
-    mask_incorrect = train[train['label']=='Mask incorrect']
+    mask_incorrect = dataset[dataset['label']=='Mask incorrect']
     # Las personas no lleven mascarillla
-    no_mask = train[train['label']=='No mask']
+    no_mask = dataset[dataset['label']=='No mask']
     # Y un % de de las imagenes en las que solo sale una mascarilla
     one = bb_number[bb_number == 1]
-    mask = train[train['image_name'].isin(one.index)]
+    mask = dataset[dataset['image_name'].isin(one.index)]
+    # mask = mask.sample(frac = 0.25) # 1/5 29733 / 35875, 75.302013 %
+    # Unimos todas las separaciones y este sera el dataset final
 
-    mask = mask.sample(frac = 0.05) # 1/5 29733 / 35875, 75.302013 %
-    # Unimos todas las separaciones y este sera el train final
-    print('mask_multiple:', len(mask_multiple))
-    print('mask_incorrect:', len(mask_incorrect))
-    print('no_mask:', len(no_mask))
+    mask = pd.concat([dataset[(dataset['label']=='Mask') & (dataset['orientation']==3.0)].sample(frac=0.15), dataset[(dataset['label']=='Mask') & (dataset['orientation']!=3.0)].sample(frac=0.5)])
 
-    # visualize_dataset(mask_incorrect) # mas o menos
-    # visualize_dataset(mask_multiple) # mas o menos
-    # visualize_dataset(train[(train['occ_type'] == 'Complex') & (train['occ_degree'] == 2)]) # mas o menos
+    dataset = pd.concat([mask, no_mask, mask_incorrect])                      
+    # 8 - Dividir las imagenes del dataset final en train, validation y test, con la proporcion 70%, 20%, 10%
+    dataset_images = dataset.image_name.values
+    dataset_images = list(set(dataset_images))
+    random.shuffle(dataset_images)
+    train_images = dataset_images[:int(len(dataset_images)*0.7)]
+    validation_images = dataset_images[int(len(dataset_images)*0.7)+1:int(len(dataset_images)*0.9)]
+    test_images = dataset_images[int(len(dataset_images)*0.9)+1:]
+    print(len(train_images))
+    print(len(validation_images))
+    print(len(test_images))
 
-    train = pd.concat([mask_multiple, mask_incorrect, no_mask, mask], ignore_index=True)
-    train = train.drop_duplicates()
+    # empty dataframe called validation
+    # validation = pd.DataFrame(columns=dataset.columns)
 
-    # order dataframe by image_name
-    train = train.sort_values(by=['image_name'])
-
-    # Ahora divimos el dataset en 5 partes, antes de ello mezclamos todas las filas para que cada parte sea lo mas aleatoria posible
-    # 3 de las 5 partes sera el dataset para entrenar el model, 1 parte sera para validar y 1 parte para como test 
-    split = round(len(train) * .75)    
-    validation = train[split+1:]
-    train = train[:split]
-    # print(train)
-    # print(validation)
-    print('Dataset: %i\t Train: %i\t Validation: %i\t Test: %i' % (len(dataset), len(train), len(validation), len(test)))
-    print('TRAIN:')
-    data_check(train)
-    print('VALIDATION:')
-    data_check(validation)
-    print('TEST:')
-    data_check(test)
-
-    train_img_list = set(train.image_name.values)
-    validation_img_list = set(validation.image_name.values)
-    test_img_list = set(test.image_name.values)
+    print('train')
+    data_check(train:=dataset[dataset.image_name.isin(train_images)])
+    print('validation')
+    data_check(validation:=dataset[dataset.image_name.isin(validation_images)])
+    print('test')
+    data_check(test:=dataset[dataset.image_name.isin(test_images)])
 
 
-    print('Train comparte imagenes con val o test?')
-    print(any(item in train_img_list for item in validation_img_list))
-    print(any(item in train_img_list for item in test_img_list))
-
-    print('Validation comparte imagenes con train o test?')
-    print(any(item in validation_img_list for item in train_img_list))
-    print(any(item in validation_img_list for item in test_img_list))
-
-    print('Test comparte imagenes con train o val?')
-    print(any(item in test_img_list for item in train_img_list))
-    print(any(item in test_img_list for item in validation_img_list))
-
-
-    # 5 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
+    # 9 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
     make_yolo_labels(train, validation, test)
 
-def visualize_yolo_labels(img_path, df):
-    img = cv2.imread(img_path)
-    for _, row in df.iterrows():
-        img = draw_yolo_bb(img, row)
-    cv2.imshow('img', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # 10 - Comprobar que los datos se han creado correctamente
+    # check_yolo_labels(train, 'train')
 
 if __name__ == "__main__":
     main()
