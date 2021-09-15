@@ -506,7 +506,7 @@ def main():
     # reset()
     # 1 - Crear la estructura del proyecto
     print('Create yolo structure')
-    # create_yolo_structure()
+    create_yolo_structure()
 
     print('Loading dataset')
     # 2 - Pasar las anotaciones del .mat a un pandas dataframe
@@ -565,12 +565,14 @@ def main():
     # validation = pd.DataFrame(columns=dataset.columns)
 
     print('train')
-    data_check(train:=dataset[dataset.image_name.isin(train_images)])
+    train=dataset[dataset.image_name.isin(train_images)]
+    data_check(train)
     print('validation')
-    data_check(validation:=dataset[dataset.image_name.isin(validation_images)])
+    validation=dataset[dataset.image_name.isin(validation_images)]
+    data_check(validation)
     print('test')
-    data_check(test:=dataset[dataset.image_name.isin(test_images)])
-
+    test=dataset[dataset.image_name.isin(test_images)]
+    data_check(test)
 
     # 9 - Pasar los dataframe al formato que usa YOLO para las anotaciones 
     make_yolo_labels(train, validation, test)
