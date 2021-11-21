@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "C:\\Users\\Rodrigo\\miniconda3\\envs\\yolov4-csp\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.condaPath": "C:\\Users\\Rodrigo\\miniconda3\\Scripts\\conda.exe",
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "git.ignoreLimitWarning": true
+}
